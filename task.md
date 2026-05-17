@@ -4,8 +4,8 @@
 
 - [x] **Phase 1** — AWS Infrastructure & IAM (Foundation)
 - [x] **Phase 2** — PySpark Core ETL
-- [/] **Phase 3** — Data Quality Framework
-- [ ] **Phase 4** — Security & Encryption
+- [x] **Phase 3** — Data Quality Framework
+- [/] **Phase 4** — Security & Encryption
 - [ ] **Phase 5** — Airflow Orchestration
 - [ ] **Phase 6** — Operations, Monitoring & Maintenance
 - [ ] **Phase 7** — Data Lake & Athena Query Layer
@@ -35,3 +35,9 @@
 - [x] `data/sample/sample_input.csv`
 - [x] `docs/spark_tuning_guide.md`
 - [x] Git commit & push Phase 2
+## Phase 3 — Data Quality Framework ✅
+- [x] `spark_jobs/data_quality.py`
+- [x] `spark_jobs/config/dq_rules.json`
+- [x] Update `spark_jobs/etl_main.py` for DQ routing
+- [x] `docs/phase3_data_quality.md`
+- [x] Git commit & push Phase 3

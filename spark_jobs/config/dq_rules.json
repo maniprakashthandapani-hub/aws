@@ -1,0 +1,31 @@
+{
+  "rules": [
+    {
+      "rule_id": "RQ_001",
+      "column": "customer_id",
+      "type": "not_null",
+      "description": "Customer ID must not be null"
+    },
+    {
+      "rule_id": "RQ_002",
+      "column": "amount",
+      "type": "range",
+      "min": 0.0,
+      "max": 1000000.0,
+      "description": "Transaction amount must be between 0 and 1,000,000"
+    },
+    {
+      "rule_id": "RQ_003",
+      "column": "transaction_date",
+      "type": "not_null",
+      "description": "Transaction date must be parseable and not null"
+    },
+    {
+      "rule_id": "RQ_004",
+      "column": "email",
+      "type": "regex",
+      "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+      "description": "Email must be a valid format if provided (allow nulls, but if present must be valid). Actually, we flag nulls in schema validator, so here we just check format."
+    }
+  ]
+}

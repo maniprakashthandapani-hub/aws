@@ -3,6 +3,7 @@ import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date, coalesce, current_timestamp
 from schema_validator import SchemaValidator
+from data_quality import DataQualityEngine
 
 def create_spark_session(app_name="DataPipelineETL"):
     """Initializes and returns a SparkSession."""
@@ -33,19 +34,13 @@ def encrypt_spii(df, columns_to_encrypt):
     print(f"Skipping encryption for {columns_to_encrypt} (to be implemented in Phase 4)")
     return df
 
-def run_data_quality_checks(df):
-    """
-    Placeholder for Phase 3 (Data Quality Framework).
-    Currently just returns the DataFrame.
-    """
-    print("Skipping detailed DQ checks (to be implemented in Phase 3)")
-    return df
-
 def main():
     parser = argparse.ArgumentParser(description="PySpark ETL Job")
     parser.add_argument("--input_path", required=True, help="S3 path to input CSV")
     parser.add_argument("--output_path", required=True, help="S3 path to output Parquet")
     parser.add_argument("--schema_path", required=True, help="S3 or local path to schema.json")
+    parser.add_argument("--dq_rules_path", required=True, help="S3 or local path to dq_rules.json")
+    parser.add_argument("--rejected_path", required=True, help="S3 path to write rejected rows")
     parser.add_argument("--execution_date", required=True, help="Date partition (YYYY-MM-DD)")
     args = parser.parse_args()
 
@@ -80,22 +75,33 @@ def main():
     # 6. Metadata tracking
     df = df.withColumn("etl_processed_at", current_timestamp())
 
-    # 7. Data Quality Checks (Phase 3 Hook)
-    df = run_data_quality_checks(df)
+    # 7. Data Quality Checks (Phase 3)
+    logger.info("Applying Data Quality Rules")
+    dq_engine = DataQualityEngine(args.dq_rules_path)
+    valid_df, rejected_df = dq_engine.apply_rules(df)
 
-    # 8. Write Output
-    logger.info(f"Writing to {args.output_path}")
+    # 8. Write Valid Output
+    logger.info(f"Writing valid data to {args.output_path}")
     
-    # Add partition column for Hive-style partitioning (Data Lake / Athena - Phase 7)
+    # Add partition column for Hive-style partitioning
     from pyspark.sql.functions import lit
-    df_out = df.withColumn("dt", lit(args.execution_date))
+    valid_out = valid_df.withColumn("dt", lit(args.execution_date))
 
-    # coalesce(4) ensures we write 4 files instead of 200 tiny ones
-    df_out.coalesce(4).write \
+    valid_out.coalesce(4).write \
         .mode("overwrite") \
         .partitionBy("dt") \
         .option("compression", "snappy") \
         .parquet(args.output_path)
+        
+    # 9. Write Rejected Output (if any)
+    # Note: We write this as JSON so it's easy for analysts to read the dq_failed_rules array
+    logger.info(f"Writing rejected data to {args.rejected_path}")
+    rejected_out = rejected_df.withColumn("dt", lit(args.execution_date))
+    
+    rejected_out.coalesce(1).write \
+        .mode("overwrite") \
+        .partitionBy("dt") \
+        .json(args.rejected_path)
 
     logger.info("ETL Job Completed Successfully.")
 
