@@ -49,4 +49,6 @@
 ## Phase 5 — Airflow Orchestration ✅
 - [x] `airflow/dags/daily_emr_etl.py`
 - [x] `docs/phase5_airflow_orchestration.md`
+- [x] `infrastructure/iam_policies/airflow_ec2_policy.json`
+- [x] `docs/phase5b_ec2_airflow_setup.md`
 - [x] Git commit & push Phase 5
