@@ -77,7 +77,8 @@ def main():
         args.input_path,
         header=True,
         schema=spark_schema,
-        mode="PERMISSIVE" # Let schema_validator handle nulls/bad records
+        mode="PERMISSIVE", # Let schema_validator handle nulls/bad records
+        encoding="UTF-16"  # Handle Windows Excel exports properly
     )
 
     # 3. Validate & Standardise (Null strategies)
@@ -86,16 +87,25 @@ def main():
     # 4. Standardise Dates
     df = standardise_dates(df, "transaction_date")
 
-    # 5. SPII Encryption (Phase 4)
-    logger.info("Applying Column-Level Encryption")
+    # 5. Metadata tracking
+    df = df.withColumn("etl_processed_at", current_timestamp())
+
+    # 6. Data Quality Checks (Phase 3)
+    logger.info("Applying Data Quality Rules")
+    dq_engine = DataQualityEngine(args.dq_rules_path)
+    valid_df, rejected_df = dq_engine.apply_rules(df)
+
+    # 7. SPII Encryption (Phase 4)
+    # MUST happen AFTER Data Quality so rules can evaluate plaintext!
+    logger.info("Applying Column-Level Encryption to Valid Data")
     spii_cols = [c['name'] for c in validator.contract['columns'] if c.get('encrypt', False)]
     
     if spii_cols:
         kms_encryptor = KMSEnvelopeEncryption(args.kms_key_arn)
         kms_encryptor.generate_data_key()
         
-        # Encrypt the DataFrame
-        df = kms_encryptor.encrypt_spii_columns(df, spii_cols)
+        # Encrypt the valid DataFrame only!
+        valid_df = kms_encryptor.encrypt_spii_columns(valid_df, spii_cols)
         
         # Save the ciphertext key to S3 for consumers
         logger.info(f"Saving encrypted data key to {args.keys_output_path}")
@@ -105,14 +115,6 @@ def main():
             args.execution_date,
             args.kms_key_arn
         )
-
-    # 6. Metadata tracking
-    df = df.withColumn("etl_processed_at", current_timestamp())
-
-    # 7. Data Quality Checks (Phase 3)
-    logger.info("Applying Data Quality Rules")
-    dq_engine = DataQualityEngine(args.dq_rules_path)
-    valid_df, rejected_df = dq_engine.apply_rules(df)
 
     # 8. Write Valid Output
     logger.info(f"Writing valid data to {args.output_path}")
