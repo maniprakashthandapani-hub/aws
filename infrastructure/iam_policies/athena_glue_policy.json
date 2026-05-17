@@ -1,0 +1,68 @@
+{
+  "_comment": "Athena + Glue IAM Policy for Data Consumers",
+  "_purpose": "Grants analysts/BI tools permission to query processed data via Athena and read Glue catalog metadata.",
+  "_principle": "Consumers can READ processed data but CANNOT write to it, modify infrastructure, or access raw landing data.",
+  "_replace": "<BUCKET_NAME> with your actual bucket name",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AthenaQueryExecution",
+      "Effect": "Allow",
+      "Action": [
+        "athena:StartQueryExecution",
+        "athena:StopQueryExecution",
+        "athena:GetQueryExecution",
+        "athena:GetQueryResults",
+        "athena:GetWorkGroup",
+        "athena:ListQueryExecutions"
+      ],
+      "Resource": [
+        "arn:aws:athena:eu-west-2:*:workgroup/data-pipeline-wg"
+      ]
+    },
+    {
+      "Sid": "GlueCatalogRead",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetDatabase",
+        "glue:GetDatabases",
+        "glue:GetTable",
+        "glue:GetTables",
+        "glue:GetPartition",
+        "glue:GetPartitions",
+        "glue:BatchGetPartition"
+      ],
+      "Resource": [
+        "arn:aws:glue:eu-west-2:*:catalog",
+        "arn:aws:glue:eu-west-2:*:database/data_lake_db",
+        "arn:aws:glue:eu-west-2:*:table/data_lake_db/*"
+      ]
+    },
+    {
+      "Sid": "S3ReadProcessedData",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<BUCKET_NAME>",
+        "arn:aws:s3:::<BUCKET_NAME>/processed/*"
+      ]
+    },
+    {
+      "Sid": "S3WriteAthenaResults",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:AbortMultipartUpload"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<BUCKET_NAME>/athena-results/*"
+      ]
+    }
+  ]
+}

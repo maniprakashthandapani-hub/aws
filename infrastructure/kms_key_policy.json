@@ -1,0 +1,77 @@
+{
+  "_comment": "KMS Key Policy — Customer Managed Key for Data Pipeline",
+  "_purpose": "Controls who can administer and use the encryption key. Root account = admin, EMR EC2 role = user.",
+  "_replace": "<ACCOUNT_ID> with your AWS account ID, <EMR_EC2_ROLE_ARN> with the EMR EC2 role ARN",
+  "_features": "Key rotation enabled, single key for both column-level AES and file-level SSE-KMS",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RootAccountFullAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<ACCOUNT_ID>:root"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "KeyAdminPermissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<ACCOUNT_ID>:root"
+      },
+      "Action": [
+        "kms:Create*",
+        "kms:Describe*",
+        "kms:Enable*",
+        "kms:List*",
+        "kms:Put*",
+        "kms:Update*",
+        "kms:Revoke*",
+        "kms:Disable*",
+        "kms:Get*",
+        "kms:Delete*",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ScheduleKeyDeletion",
+        "kms:CancelKeyDeletion"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EMRInstanceKeyUsage",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "<EMR_EC2_ROLE_ARN>"
+      },
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey",
+        "kms:GenerateDataKeyWithoutPlaintext",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowS3ServiceForSSEKMS",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "<EMR_EC2_ROLE_ARN>"
+      },
+      "Action": [
+        "kms:CreateGrant",
+        "kms:ListGrants",
+        "kms:RevokeGrant"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "kms:GrantIsForAWSResource": "true"
+        }
+      }
+    }
+  ]
+}

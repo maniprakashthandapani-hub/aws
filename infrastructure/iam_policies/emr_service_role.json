@@ -1,0 +1,22 @@
+{
+  "_comment": "EMR Service Role — Trust Policy",
+  "_purpose": "Allows the EMR service to assume this role to manage cluster resources (EC2, EBS, S3 logs)",
+  "_usage": "aws iam create-role --role-name EMR_DefaultRole --assume-role-policy-document file://this-file.json",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEMRServiceAssume",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "elasticmapreduce.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-2"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "_comment": "Glue Catalog Setup — Database and Table definition for Data Lake",
+  "_purpose": "Defines the metadata layer that Athena queries against. Points to S3 processed/ prefix.",
+  "_replace": "<BUCKET_NAME> with your actual bucket name",
+
+  "database": {
+    "name": "data_lake_db",
+    "description": "Data lake for ETL pipeline processed output",
+    "location_uri": "s3://<BUCKET_NAME>/processed/",
+    "parameters": {
+      "created_by": "data-pipeline",
+      "environment": "dev"
+    }
+  },
+
+  "table": {
+    "name": "processed_data",
+    "database_name": "data_lake_db",
+    "description": "Daily processed customer transaction data (SPII columns encrypted)",
+    "table_type": "EXTERNAL_TABLE",
+
+    "storage_descriptor": {
+      "location": "s3://<BUCKET_NAME>/processed/",
+      "input_format": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+      "output_format": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+      "serde_info": {
+        "serialization_library": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+        "parameters": {
+          "serialization.format": "1"
+        }
+      },
+
+      "columns": [
+        { "name": "customer_id",       "type": "int",     "comment": "Primary key — unique customer identifier" },
+        { "name": "name",              "type": "string",  "comment": "Customer name (nulls filled with 'Unknown')" },
+        { "name": "email_encrypted",   "type": "string",  "comment": "AES-256-GCM encrypted email (base64)" },
+        { "name": "phone_encrypted",   "type": "string",  "comment": "AES-256-GCM encrypted phone (base64)" },
+        { "name": "transaction_date",  "type": "date",    "comment": "Standardised to yyyy-MM-dd" },
+        { "name": "amount",            "type": "double",  "comment": "Transaction amount (nulls filled with 0.0)" },
+        { "name": "is_email_null",     "type": "boolean", "comment": "Flag: true if original email was null" },
+        { "name": "is_phone_null",     "type": "boolean", "comment": "Flag: true if original phone was null" },
+        { "name": "is_amount_defaulted","type": "boolean", "comment": "Flag: true if amount was null and defaulted to 0.0" }
+      ]
+    },
+
+    "partition_keys": [
+      { "name": "dt", "type": "string", "comment": "Partition key: date in YYYY-MM-DD format" }
+    ],
+
+    "parameters": {
+      "classification": "parquet",
+      "compressionType": "snappy",
+      "typeOfData": "file",
+      "EXTERNAL": "TRUE"
+    }
+  }
+}

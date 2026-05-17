@@ -1,0 +1,39 @@
+{
+  "_comment": "S3 Bucket Policy — Enforce SSE-KMS encryption on uploads",
+  "_purpose": "Denies any PutObject to processed/ and archive/ that doesn't use SSE-KMS. Defense-in-depth on top of IAM.",
+  "_replace": "<BUCKET_NAME> with your actual bucket name",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyUnencryptedUploadsToProcessed",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::<BUCKET_NAME>/processed/*",
+        "arn:aws:s3:::<BUCKET_NAME>/archive/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "s3:x-amz-server-side-encryption": "aws:kms"
+        }
+      }
+    },
+    {
+      "Sid": "DenyUnencryptedTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::<BUCKET_NAME>",
+        "arn:aws:s3:::<BUCKET_NAME>/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    }
+  ]
+}
