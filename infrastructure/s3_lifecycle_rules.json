@@ -1,8 +1,4 @@
 {
-  "_comment": "S3 Lifecycle Rules — Auto-purge archive, athena-results, rejected",
-  "_purpose": "Automates retention policy: archive=2 days, athena-results=7 days, rejected=30 days. processed/ and logs/ have NO expiry.",
-  "_apply": "aws s3api put-lifecycle-configuration --bucket <BUCKET_NAME> --lifecycle-configuration file://this-file.json",
-
   "Rules": [
     {
       "ID": "purge-archive-after-2-days",

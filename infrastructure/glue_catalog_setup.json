@@ -1,8 +1,4 @@
 {
-  "_comment": "Glue Catalog Setup — Database and Table definition for Data Lake",
-  "_purpose": "Defines the metadata layer that Athena queries against. Points to S3 processed/ prefix.",
-  "_replace": "<BUCKET_NAME> with your actual bucket name",
-
   "database": {
     "name": "data_lake_db",
     "description": "Data lake for ETL pipeline processed output",

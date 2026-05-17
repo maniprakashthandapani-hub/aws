@@ -1,9 +1,4 @@
 {
-  "_comment": "Athena + Glue IAM Policy for Data Consumers",
-  "_purpose": "Grants analysts/BI tools permission to query processed data via Athena and read Glue catalog metadata.",
-  "_principle": "Consumers can READ processed data but CANNOT write to it, modify infrastructure, or access raw landing data.",
-  "_replace": "<BUCKET_NAME> with your actual bucket name",
-
   "Version": "2012-10-17",
   "Statement": [
     {

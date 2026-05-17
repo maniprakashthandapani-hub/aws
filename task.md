@@ -3,8 +3,8 @@
 ## Phase Progress
 
 - [x] **Phase 1** — AWS Infrastructure & IAM (Foundation)
-- [ ] **Phase 2** — PySpark Core ETL
-- [ ] **Phase 3** — Data Quality Framework
+- [x] **Phase 2** — PySpark Core ETL
+- [/] **Phase 3** — Data Quality Framework
 - [ ] **Phase 4** — Security & Encryption
 - [ ] **Phase 5** — Airflow Orchestration
 - [ ] **Phase 6** — Operations, Monitoring & Maintenance
@@ -27,11 +27,11 @@
 - [x] README.md
 - [x] Git commit & push Phase 1
 
-## Phase 2 — PySpark Core ETL (Next)
-- [ ] `spark_jobs/etl_main.py`
-- [ ] `spark_jobs/schema_validator.py`
-- [ ] `spark_jobs/config/schema_definition.json`
-- [ ] `spark_jobs/config/spark_tuning.json`
-- [ ] `data/sample/sample_input.csv`
-- [ ] `docs/spark_tuning_guide.md`
-- [ ] Git commit & push Phase 2
+## Phase 2 — PySpark Core ETL ✅
+- [x] `spark_jobs/etl_main.py`
+- [x] `spark_jobs/schema_validator.py`
+- [x] `spark_jobs/config/schema_definition.json`
+- [x] `spark_jobs/config/spark_tuning.json`
+- [x] `data/sample/sample_input.csv`
+- [x] `docs/spark_tuning_guide.md`
+- [x] Git commit & push Phase 2

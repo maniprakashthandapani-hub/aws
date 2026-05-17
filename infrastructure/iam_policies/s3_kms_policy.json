@@ -1,8 +1,4 @@
 {
-  "_comment": "S3 + KMS Access Policy for EMR Serverless Role",
-  "_purpose": "Grants least-privilege S3 read/write and KMS encrypt/decrypt to the EMR Serverless execution role.",
-  "_attach_to": "EMR_Serverless_ExecutionRole (as inline or managed policy)",
-  "_replace": "<BUCKET_NAME> with your actual bucket name, <KMS_KEY_ARN> with your KMS key ARN",
 
   "Version": "2012-10-17",
   "Statement": [
@@ -14,9 +10,9 @@
         "s3:GetObjectVersion"
       ],
       "Resource": [
-        "arn:aws:s3:::<BUCKET_NAME>/landing/*",
-        "arn:aws:s3:::<BUCKET_NAME>/config/*",
-        "arn:aws:s3:::<BUCKET_NAME>/scripts/*"
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/landing/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/config/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/scripts/*"
       ]
     },
     {
@@ -27,17 +23,17 @@
         "s3:PutObjectAcl"
       ],
       "Resource": [
-        "arn:aws:s3:::<BUCKET_NAME>/processed/*",
-        "arn:aws:s3:::<BUCKET_NAME>/archive/*",
-        "arn:aws:s3:::<BUCKET_NAME>/rejected/*",
-        "arn:aws:s3:::<BUCKET_NAME>/logs/*"
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/processed/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/archive/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/rejected/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/logs/*"
       ]
     },
     {
       "Sid": "S3DeleteLandingAfterArchive",
       "Effect": "Allow",
       "Action": "s3:DeleteObject",
-      "Resource": "arn:aws:s3:::<BUCKET_NAME>/landing/*"
+      "Resource": "arn:aws:s3:::data-pipeline-dev-tmanipra/landing/*"
     },
     {
       "Sid": "S3ListBucket",
@@ -46,7 +42,7 @@
         "s3:ListBucket",
         "s3:GetBucketLocation"
       ],
-      "Resource": "arn:aws:s3:::<BUCKET_NAME>"
+      "Resource": "arn:aws:s3:::data-pipeline-dev-tmanipra"
     },
     {
       "Sid": "KMSEncryptDecrypt",
@@ -58,7 +54,7 @@
         "kms:GenerateDataKeyWithoutPlaintext",
         "kms:DescribeKey"
       ],
-      "Resource": "<KMS_KEY_ARN>"
+      "Resource": "arn:aws:kms:eu-west-2:038849867257:key/95c4b27f-2243-4e8d-a934-22c201b9e84d"
     },
     {
       "Sid": "CloudWatchMetrics",

@@ -1,0 +1,49 @@
+{
+  "tableName": "customer_transactions",
+  "columns": [
+    {
+      "name": "customer_id",
+      "type": "integer",
+      "required": true,
+      "description": "Unique identifier for the customer"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "required": false,
+      "nullStrategy": "fill",
+      "fillValue": "Unknown",
+      "description": "Customer full name"
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": false,
+      "nullStrategy": "flag",
+      "encrypt": true,
+      "description": "Customer email address (SPII)"
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "required": false,
+      "nullStrategy": "flag",
+      "encrypt": true,
+      "description": "Customer phone number (SPII)"
+    },
+    {
+      "name": "transaction_date",
+      "type": "string",
+      "required": true,
+      "description": "Date of transaction. Supports multiple formats."
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "required": false,
+      "nullStrategy": "fill_and_flag",
+      "fillValue": 0.0,
+      "description": "Transaction amount in USD"
+    }
+  ]
+}

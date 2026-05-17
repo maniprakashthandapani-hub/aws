@@ -1,9 +1,4 @@
 {
-  "_comment": "KMS Key Policy — Customer Managed Key for Data Pipeline",
-  "_purpose": "Controls who can administer and use the encryption key. Root account = admin, EMR Serverless role = user.",
-  "_replace": "<ACCOUNT_ID> with your AWS account ID, <EMR_SERVERLESS_ROLE_ARN> with the execution role ARN",
-  "_features": "Key rotation enabled, single key for both column-level AES and file-level SSE-KMS",
-
   "Version": "2012-10-17",
   "Statement": [
     {
