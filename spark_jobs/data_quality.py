@@ -10,9 +10,18 @@ class DataQualityEngine:
     """
     
     def __init__(self, rules_path: str):
-        with open(rules_path, 'r') as f:
-            self.config = json.load(f)
+        if rules_path.startswith("s3://"):
+            import boto3
+            s3 = boto3.client('s3')
+            bucket = rules_path.split("/")[2]
+            key = "/".join(rules_path.split("/")[3:])
+            response = s3.get_object(Bucket=bucket, Key=key)
+            self.config = json.loads(response['Body'].read().decode('utf-8'))
             self.rules = self.config.get('rules', [])
+        else:
+            with open(rules_path, 'r') as f:
+                self.config = json.load(f)
+                self.rules = self.config.get('rules', [])
 
     def apply_rules(self, df: DataFrame) -> tuple[DataFrame, DataFrame]:
         """

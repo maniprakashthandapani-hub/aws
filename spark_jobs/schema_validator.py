@@ -17,8 +17,16 @@ class SchemaValidator:
     }
 
     def __init__(self, contract_path: str):
-        with open(contract_path, 'r') as f:
-            self.contract = json.load(f)
+        if contract_path.startswith("s3://"):
+            import boto3
+            s3 = boto3.client('s3')
+            bucket = contract_path.split("/")[2]
+            key = "/".join(contract_path.split("/")[3:])
+            response = s3.get_object(Bucket=bucket, Key=key)
+            self.contract = json.loads(response['Body'].read().decode('utf-8'))
+        else:
+            with open(contract_path, 'r') as f:
+                self.contract = json.load(f)
             
     def get_pyspark_schema(self) -> StructType:
         """Converts the JSON contract into a PySpark StructType."""
