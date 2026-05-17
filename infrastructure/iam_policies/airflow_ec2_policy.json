@@ -6,7 +6,9 @@
       "Action": [
         "emr-serverless:StartJobRun",
         "emr-serverless:GetJobRun",
-        "emr-serverless:CancelJobRun"
+        "emr-serverless:CancelJobRun",
+        "emr-serverless:GetApplication",
+        "emr-serverless:StartApplication"
       ],
       "Resource": "*"
     },
