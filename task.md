@@ -6,8 +6,8 @@
 - [x] **Phase 2** — PySpark Core ETL
 - [x] **Phase 3** — Data Quality Framework
 - [x] **Phase 4** — Security & Encryption
-- [/] **Phase 5** — Airflow Orchestration
-- [ ] **Phase 6** — Operations, Monitoring & Maintenance
+- [x] **Phase 5** — Airflow Orchestration
+- [/] **Phase 6** — Operations, Monitoring & Maintenance
 - [ ] **Phase 7** — Data Lake & Athena Query Layer
 - [ ] **Phase 8** — Terraform IaC
 
@@ -46,3 +46,7 @@
 - [x] Update `spark_jobs/etl_main.py` to use KMS Envelope Encryption
 - [x] `docs/phase4_security_encryption.md`
 - [x] Git commit & push Phase 4
+## Phase 5 — Airflow Orchestration ✅
+- [x] `airflow/dags/daily_emr_etl.py`
+- [x] `docs/phase5_airflow_orchestration.md`
+- [x] Git commit & push Phase 5
