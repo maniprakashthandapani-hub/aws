@@ -109,7 +109,7 @@ with DAG(
                     "--keys_output_path", f"s3://{S3_BUCKET}/config/keys/",
                     "--execution_date", "{{ ds }}"
                 ],
-                "sparkSubmitParameters": f"--py-files s3://{S3_BUCKET}/scripts/schema_validator.py,s3://{S3_BUCKET}/scripts/dq_engine.py,s3://{S3_BUCKET}/scripts/encryption_utils.py --conf spark.executor.cores=4 --conf spark.executor.memory=14g --conf spark.driver.cores=4 --conf spark.driver.memory=14g --conf spark.dynamicAllocation.enabled=false --conf spark.sql.shuffle.partitions=8 --conf spark.sql.adaptive.enabled=true --conf spark.hadoop.fs.s3a.server-side-encryption-algorithm=SSE-KMS --conf spark.hadoop.fs.s3a.server-side-encryption.key={KMS_KEY_ARN}"
+                "sparkSubmitParameters": f"--py-files s3://{S3_BUCKET}/scripts/schema_validator.py,s3://{S3_BUCKET}/scripts/data_quality.py,s3://{S3_BUCKET}/scripts/encryption_utils.py --conf spark.executor.cores=4 --conf spark.executor.memory=14g --conf spark.driver.cores=4 --conf spark.driver.memory=14g --conf spark.dynamicAllocation.enabled=false --conf spark.sql.shuffle.partitions=8 --conf spark.sql.adaptive.enabled=true --conf spark.hadoop.fs.s3a.server-side-encryption-algorithm=SSE-KMS --conf spark.hadoop.fs.s3a.server-side-encryption.key={KMS_KEY_ARN}"
             }
         },
         configuration_overrides={
