@@ -28,22 +28,27 @@ def standardise_dates(df, date_col):
         )
     )
 
-def save_ciphertext_key_to_s3(ciphertext_blob, s3_path, dt):
+def save_ciphertext_key_to_s3(ciphertext_blob, s3_path, dt, kms_key_arn):
     """
     Saves the KMS encrypted data key to S3 so consumers can decrypt the data later.
     """
-    # Quick string manipulation to get bucket and key from s3://bucket/path
     if s3_path.startswith("s3://"):
         s3_path = s3_path[5:]
     bucket = s3_path.split("/")[0]
-    prefix = "/".join(s3_path.split("/")[1:])
+    prefix = "/".join(s3_path.split("/")[1:]).strip("/")
     
     file_key = f"{prefix}/dt={dt}/data_key.json"
     
     s3_client = boto3.client('s3')
     payload = json.dumps({"execution_date": dt, "encrypted_data_key_base64": ciphertext_blob})
     
-    s3_client.put_object(Bucket=bucket, Key=file_key, Body=payload)
+    s3_client.put_object(
+        Bucket=bucket, 
+        Key=file_key, 
+        Body=payload,
+        ServerSideEncryption='aws:kms',
+        SSEKMSKeyId=kms_key_arn
+    )
 
 
 def main():
@@ -97,7 +102,8 @@ def main():
         save_ciphertext_key_to_s3(
             kms_encryptor.get_ciphertext_blob(),
             args.keys_output_path,
-            args.execution_date
+            args.execution_date,
+            args.kms_key_arn
         )
 
     # 6. Metadata tracking
