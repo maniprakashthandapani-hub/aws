@@ -1,0 +1,17 @@
+{
+  "_comment": "EMR Serverless Execution Role — Trust Policy",
+  "_purpose": "Allows EMR Serverless to assume this role to execute Spark jobs.",
+  "_usage": "aws iam create-role --role-name EMR_Serverless_ExecutionRole --assume-role-policy-document file://this-file.json",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEMRServerlessAssume",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "emr-serverless.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}

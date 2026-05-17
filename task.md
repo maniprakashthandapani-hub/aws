@@ -2,27 +2,36 @@
 
 ## Phase Progress
 
-- [ ] **Phase 1** — AWS Infrastructure & IAM (Foundation)
+- [x] **Phase 1** — AWS Infrastructure & IAM (Foundation)
 - [ ] **Phase 2** — PySpark Core ETL
 - [ ] **Phase 3** — Data Quality Framework
 - [ ] **Phase 4** — Security & Encryption
 - [ ] **Phase 5** — Airflow Orchestration
 - [ ] **Phase 6** — Operations, Monitoring & Maintenance
 - [ ] **Phase 7** — Data Lake & Athena Query Layer
+- [ ] **Phase 8** — Terraform IaC
 
 ---
 
-## Phase 1 — AWS Infrastructure & IAM
-- [ ] `.gitignore`
-- [ ] Project folder scaffold
-- [ ] IAM policy: EMR service role
-- [ ] IAM policy: EMR EC2 instance role
-- [ ] IAM policy: S3 + KMS access
-- [ ] S3 bucket policy (enforce encryption)
-- [ ] S3 lifecycle rules (archive 2-day purge)
-- [ ] KMS key policy
-- [ ] EMR cluster config JSON
-- [ ] Athena/Glue IAM policy
-- [ ] Glue catalog setup
-- [ ] README.md
-- [ ] Git commit Phase 1
+## Phase 1 — AWS Infrastructure & IAM ✅
+- [x] `.gitignore`
+- [x] Project folder scaffold (7 directories)
+- [x] IAM policy: EMR Serverless Execution Role (`emr_serverless_execution_role.json`)
+- [x] IAM policy: S3 + KMS access (`s3_kms_policy.json`)
+- [x] IAM policy: Athena + Glue (`athena_glue_policy.json`)
+- [x] S3 bucket policy — enforce encryption (`s3_bucket_policy.json`)
+- [x] S3 lifecycle rules — archive 2-day purge (`s3_lifecycle_rules.json`)
+- [x] KMS key policy (`kms_key_policy.json`)
+- [x] EMR Serverless App config JSON (`emr_serverless_app_config.json`)
+- [x] Glue catalog setup (`glue_catalog_setup.json`)
+- [x] README.md
+- [x] Git commit & push Phase 1
+
+## Phase 2 — PySpark Core ETL (Next)
+- [ ] `spark_jobs/etl_main.py`
+- [ ] `spark_jobs/schema_validator.py`
+- [ ] `spark_jobs/config/schema_definition.json`
+- [ ] `spark_jobs/config/spark_tuning.json`
+- [ ] `data/sample/sample_input.csv`
+- [ ] `docs/spark_tuning_guide.md`
+- [ ] Git commit & push Phase 2

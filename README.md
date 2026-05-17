@@ -1,11 +1,11 @@
-# AWS Data Pipeline — EMR + PySpark + Airflow
+# AWS Data Pipeline — EMR Serverless + PySpark + Airflow
 
 > Production-grade daily data pipeline on AWS that reads CSV from S3, validates schema, applies transformations (null handling, date standardisation, SPII encryption), writes encrypted Parquet to S3 — orchestrated by Airflow on a 7-day schedule.
 
 ## Architecture
 
 ```
-S3 Landing (CSV) → EMR Cluster (PySpark) → S3 Processed (Parquet/SSE-KMS)
+S3 Landing (CSV) → EMR Serverless (PySpark) → S3 Processed (Parquet/SSE-KMS)
                          ↓                         ↓
                     S3 Logs              Glue Catalog + Athena
                          ↑

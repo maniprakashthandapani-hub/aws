@@ -2,7 +2,7 @@
 
 ## Why This Phase First?
 
-Nothing runs without infrastructure. This phase creates the **security boundaries**, **storage layout**, **encryption keys**, and **cluster blueprint** that every subsequent phase depends on. Think of it as laying the foundation of a building — PySpark (Phase 2), Airflow (Phase 5), and Athena (Phase 7) all stand on top of this.
+Nothing runs without infrastructure. This phase creates the **security boundaries**, **storage layout**, **encryption keys**, and **serverless application blueprint** that every subsequent phase depends on. Think of it as laying the foundation of a building — PySpark (Phase 2), Airflow (Phase 5), and Athena (Phase 7) all stand on top of this.
 
 ---
 
@@ -31,10 +31,9 @@ Nothing runs without infrastructure. This phase creates the **security boundarie
 ```
 aws_data_engineer/
 ├── infrastructure/          ← This phase
-│   ├── emr_cluster_config.json
+│   ├── emr_serverless_app_config.json
 │   ├── iam_policies/
-│   │   ├── emr_service_role.json
-│   │   ├── emr_ec2_role.json
+│   │   ├── emr_serverless_execution_role.json
 │   │   ├── s3_kms_policy.json
 │   │   └── athena_glue_policy.json
 │   ├── s3_bucket_policy.json
@@ -59,32 +58,14 @@ aws_data_engineer/
 
 ### 3. IAM Policies — The Security Layer
 
-AWS uses **IAM Roles** to grant permissions. EMR requires **two roles** to function:
+AWS uses **IAM Roles** to grant permissions. EMR Serverless requires an **Execution Role** to function:
 
-#### 3a. EMR Service Role (`emr_service_role.json`)
+#### 3a. EMR Serverless Execution Role (`emr_serverless_execution_role.json`)
 
-**What it does:** Allows the EMR *service itself* to manage AWS resources on your behalf.
-
-```
-EMR Service ──▶ Creates EC2 instances for your cluster
-             ──▶ Attaches EBS volumes for local storage
-             ──▶ Manages security groups for networking
-             ──▶ Writes cluster logs to S3
-```
-
-**Without this:** EMR cannot create a single instance. The "Create Cluster" button would fail immediately.
-
-**Permissions granted:**
-- `ec2:RunInstances`, `ec2:TerminateInstances` — launch/kill cluster nodes
-- `ec2:CreateSecurityGroup` — networking for cluster communication
-- `s3:PutObject` on logs prefix — write EMR step/application logs
-
-#### 3b. EMR EC2 Instance Role (`emr_ec2_role.json`)
-
-**What it does:** Attached to every EC2 instance *inside* the cluster. This is **what your PySpark code runs as**.
+**What it does:** This is the role that EMR Serverless assumes when running your Spark jobs. This is **what your PySpark code runs as**.
 
 ```
-Your PySpark Code (running on EC2)
+Your PySpark Code (running on EMR Serverless)
     ├── Reads CSV from s3://…/landing/       ← needs s3:GetObject
     ├── Writes Parquet to s3://…/processed/  ← needs s3:PutObject
     ├── Calls KMS to encrypt SPII columns    ← needs kms:Encrypt
@@ -94,14 +75,9 @@ Your PySpark Code (running on EC2)
 
 **Without this:** Your Spark job would start but crash with `AccessDeniedException` the moment it tries to read from S3.
 
-**Key principle — Least Privilege:**
-- Can read ONLY from `landing/` and `config/` prefixes
-- Can write ONLY to `processed/`, `archive/`, `rejected/`, and `logs/`
-- Can use ONLY the specific KMS key we create (not all keys in the account)
+#### 3b. S3 + KMS Policy (`s3_kms_policy.json`)
 
-#### 3c. S3 + KMS Policy (`s3_kms_policy.json`)
-
-**What it does:** Fine-grained S3 and KMS permissions attached to the EC2 role.
+**What it does:** Fine-grained S3 and KMS permissions attached to the Execution Role.
 
 | Permission | Resource | Purpose |
 |-----------|----------|---------|
@@ -130,11 +106,6 @@ Any PUT to processed/ or archive/ ──▶ Check: Is SSE-KMS header present?
 - Bucket policy controls *how* they upload
 - Defense-in-depth: even if someone has the right IAM role, they MUST encrypt
 
-**Who cares about this?**
-- **DevOps** — enforces compliance without trusting application code
-- **Product Owner** — assurance that data-at-rest is always encrypted
-- **Data Consumer** — confidence that their PII is protected
-
 ---
 
 ### 5. S3 Lifecycle Rules (`s3_lifecycle_rules.json`)
@@ -154,11 +125,6 @@ Day 3: AUTO-DELETED by S3 lifecycle ♻️
 - **Auditable** — lifecycle rules are visible in AWS console
 - **Cost** — no compute cost; S3 does it internally
 
-**Who cares about this?**
-- **App Maintenance** — no custom purge script to debug
-- **DevOps** — infrastructure-as-code, not application logic
-- **Product Owner** — data retention policy enforced automatically
-
 ---
 
 ### 6. KMS Key Policy (`kms_key_policy.json`)
@@ -168,38 +134,33 @@ Day 3: AUTO-DELETED by S3 lifecycle ♻️
 ```
 KMS Key: alias/data-pipeline-key
     ├── Admin: Root account (can manage key lifecycle)
-    ├── Users: EMR EC2 role (can encrypt/decrypt)
+    ├── Users: EMR Serverless Execution Role (can encrypt/decrypt)
     ├── Rotation: Enabled (AWS rotates key material annually)
-    └── Grants: EMR service (for S3 SSE-KMS integration)
+    └── Grants: S3 service (for S3 SSE-KMS integration)
 ```
 
 **Two encryption use cases for this single key:**
 1. **Column-level** — PySpark `aes_encrypt()` uses a data key derived from this CMK
 2. **File-level** — S3 SSE-KMS uses this CMK to encrypt the entire Parquet file
 
-**Key rotation** means AWS creates new key material yearly, but old data encrypted with the old material can still be decrypted. Zero downtime, zero code changes.
-
 ---
 
-### 7. EMR Cluster Config (`emr_cluster_config.json`)
+### 7. EMR Serverless Application Config (`emr_serverless_app_config.json`)
 
-**What it does:** Complete cluster specification — ready to be used by `aws emr create-cluster` CLI or Airflow's `EmrCreateJobFlowOperator`.
+**What it does:** Complete EMR Serverless application specification — ready to be used by `aws emr-serverless create-application` CLI.
 
 | Config Area | Setting | Why |
 |------------|---------|-----|
 | **Release** | `emr-7.x` | Latest Spark 3.5+ with AQE built-in |
-| **Master** | `m5.xlarge`, On-Demand | Stability — driver runs here, single point of failure |
-| **Core** | `m5.xlarge`, **Spot** | Cost savings (60% off); executors run here |
-| **Instances** | 1 master + 1 core | Minimum viable for 1GB workload |
-| **Auto-terminate** | 15 min idle | Safety net — kills cluster if Airflow fails to terminate |
-| **Logging** | `s3://…/logs/emr/` | Persistent logs survive cluster termination |
-| **Spark configs** | driver=2g, executor=4g, shuffle=8 | Tuned for 1GB (see Spark Tuning section) |
-| **Applications** | Spark only | No Hive/Pig/HBase — keep it lean |
+| **Type** | `SPARK` | We only need Spark, no Hive/Presto |
+| **Capacity** | Max 16 vCPU, 64 GB | Hard limit to prevent runaway costs |
+| **Auto-start** | `true` | Starts automatically when job is submitted |
+| **Auto-stop** | `15 min` idle | Stops billing automatically after job completes |
 
 **Who cares about this?**
-- **DevOps** — reproducible cluster via config file, not console clicking
-- **App Maintenance** — change instance type or Spark config in one place
-- **Product Owner** — cost predictable (~$0.06/run)
+- **DevOps** — reproducible app via config file, no manual setup
+- **App Maintenance** — zero infrastructure to manage (no EC2 instances)
+- **Product Owner** — cost predictability with hard capacity limits
 
 ---
 
@@ -210,7 +171,7 @@ KMS Key: alias/data-pipeline-key
 - Run Athena queries against the processed data
 - Write query results to S3
 
-This is separate from the EMR role because **data consumers** (analysts, dashboards) use Athena — they should NOT have EMR or landing zone access.
+This is separate from the pipeline role because **data consumers** (analysts, dashboards) use Athena — they should NOT have EMR or landing zone access.
 
 ---
 
@@ -221,36 +182,8 @@ This is separate from the EMR role because **data consumers** (analysts, dashboa
 - Table name: `processed_data`
 - Location: `s3://…/processed/`
 - Partition key: `dt` (Hive-style `dt=YYYY-MM-DD`)
-- Schema: Auto-discovered from Parquet or manually defined
-
-**Think of Glue Catalog as:**
-```
-Traditional Database          vs.          Data Lake
-─────────────────                          ─────────
-PostgreSQL schema                          Glue Catalog
-  └── table definition                       └── table definition
-      └── data on disk                           └── data in S3 (Parquet)
-```
 
 Athena reads the Glue table definition to know *where* the Parquet files are and *what schema* they have — then runs SQL directly against S3.
-
----
-
-## Files Produced in This Phase
-
-| File | Purpose |
-|------|---------|
-| `.gitignore` | Exclude secrets, bytecode, IDE files |
-| `infrastructure/iam_policies/emr_service_role.json` | EMR service permissions |
-| `infrastructure/iam_policies/emr_ec2_role.json` | EC2 instance profile for Spark |
-| `infrastructure/iam_policies/s3_kms_policy.json` | S3 read/write + KMS encrypt/decrypt |
-| `infrastructure/iam_policies/athena_glue_policy.json` | Athena query + Glue catalog access |
-| `infrastructure/s3_bucket_policy.json` | Enforce SSE-KMS on uploads |
-| `infrastructure/s3_lifecycle_rules.json` | Auto-purge archive after 2 days |
-| `infrastructure/kms_key_policy.json` | CMK access control + rotation |
-| `infrastructure/emr_cluster_config.json` | Full cluster specification |
-| `infrastructure/glue_catalog_setup.json` | Glue database + table definition |
-| `README.md` | Project overview |
 
 ---
 
@@ -299,7 +232,7 @@ Click bucket name → Create folder → create each one:
   processed/
   archive/
   rejected/
-  logs/emr/
+  logs/emr-serverless/
   logs/airflow/
   logs/dq_reports/
   scripts/
@@ -331,7 +264,7 @@ AWS Console → KMS → Customer managed keys → Create key
 │                                                               │
 │  Step 4: Define key usage permissions                         │
 │  Key users:             (leave empty for now — we'll add      │
-│                          the EMR EC2 role after creating it)  │
+│                          the Execution Role after creating it)│
 │                                                               │
 │                [ Finish ]                                     │
 └──────────────────────────────────────────────────────────────┘
@@ -344,147 +277,113 @@ AWS Console → KMS → Customer managed keys → Create key
 
 ---
 
-### Console Step 3: Create IAM Roles
-
-#### 3a. EMR Service Role
+### Console Step 3: Create Execution Role
 
 ```
 AWS Console → IAM → Roles → Create role
 
 ┌──────────────────────────────────────────────────────────────┐
 │  Step 1: Select trusted entity                                │
-│  Trusted entity type:  ◉ AWS service                         │
-│  Use case:             EMR                                    │
-│  Select:               ◉ EMR                                 │
+│  Trusted entity type:  ◉ Custom trust policy                 │
+│                                                               │
+│  Custom trust policy:                                         │
+│  {                                                            │
+│    "Version": "2012-10-17",                                   │
+│    "Statement": [                                             │
+│      {                                                        │
+│        "Effect": "Allow",                                     │
+│        "Principal": { "Service": "emr-serverless.amazonaws.com" },│
+│        "Action": "sts:AssumeRole"                             │
+│      }                                                        │
+│    ]                                                          │
+│  }                                                            │
 │                                                               │
 │  Step 2: Add permissions                                      │
-│  Search and select:                                           │
-│  ☑ AmazonEMRServicePolicy_v2                                │
+│  (Skip for now, we will add inline policy next)               │
 │                                                               │
 │  Step 3: Name, review, create                                │
-│  Role name:            EMR_DefaultRole                        │
-│  Description:          Allows EMR to manage cluster resources │
-│  Tags:                 Project = data-pipeline                │
+│  Role name:            EMR_Serverless_ExecutionRole           │
+│  Description:          Execution role for EMR Serverless jobs │
 │                                                               │
 │                [ Create role ]                                │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-#### 3b. EMR EC2 Instance Profile Role
-
+**After creation — add S3 and KMS permissions:**
 ```
-AWS Console → IAM → Roles → Create role
+IAM → Roles → EMR_Serverless_ExecutionRole → Add permissions → Create inline policy
 
-┌──────────────────────────────────────────────────────────────┐
-│  Step 1: Select trusted entity                                │
-│  Trusted entity type:  ◉ AWS service                         │
-│  Use case:             EC2                                    │
-│  Select:               ◉ EC2                                 │
-│                                                               │
-│  Step 2: Add permissions                                      │
-│  Search and select:                                           │
-│  ☑ AmazonS3FullAccess      (we'll restrict this later)      │
-│  ☑ AmazonEMRForEC2Role     (deprecated but works for MVP)   │
-│                                                               │
-│  Step 3: Name, review, create                                │
-│  Role name:            EMR_EC2_DefaultRole                    │
-│  Description:          EC2 instance profile for EMR nodes     │
-│                                                               │
-│                [ Create role ]                                │
-└──────────────────────────────────────────────────────────────┘
-```
+JSON tab → copy the contents of infrastructure/iam_policies/s3_kms_policy.json
+(Make sure to replace <BUCKET_NAME> and <KMS_KEY_ARN> with your values)
 
-**After creation — add KMS permissions:**
-```
-IAM → Roles → EMR_EC2_DefaultRole → Add permissions → Create inline policy
-
-JSON tab → paste:
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "kms:Encrypt",
-        "kms:Decrypt",
-        "kms:GenerateDataKey",
-        "kms:DescribeKey"
-      ],
-      "Resource": "<YOUR-KMS-KEY-ARN>"
-    }
-  ]
-}
-
-Policy name: data-pipeline-kms-access
+Policy name: data-pipeline-s3-kms-access
 ```
 
 **After KMS policy — update the KMS key:**
 ```
 KMS → Customer managed keys → data-pipeline-key → Key policy → Edit
 
-Add EMR_EC2_DefaultRole to the "Key users" section so the
+Add EMR_Serverless_ExecutionRole to the "Key users" section so the
 role can use the key for encryption/decryption.
 ```
 
 ---
 
-### Console Step 4: Add S3 Lifecycle Rules
+### Console Step 4: Create EMR Serverless Application
+
+```
+AWS Console → EMR → EMR Serverless → Manage applications → Create application
+
+┌──────────────────────────────────────────────────────────────┐
+│  Name:                 data-pipeline-app                      │
+│  Type:                 Spark                                  │
+│  Release version:      emr-7.1.0                              │
+│                                                               │
+│  Architecture:         x86_64                                 │
+│                                                               │
+│  Application setup options:                                   │
+│  ◉ Default setup (AWS configures VPC/subnets automatically)  │
+│                                                               │
+│  Application limits:                                          │
+│  Maximum vCPU:         16 vCPU                                │
+│  Maximum memory:       64 GB                                  │
+│                                                               │
+│  Application behavior:                                        │
+│  ☑ Start application when job is submitted                  │
+│  ☑ Stop application after being idle for: 15 minutes        │
+│                                                               │
+│                [ Create application ]                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**After creation:** Copy the **Application ID** (you will need this for Airflow).
+
+---
+
+### Console Step 5: Add S3 Lifecycle Rules
 
 ```
 AWS Console → S3 → your bucket → Management → Create lifecycle rule
 
-┌──────────────────────────────────────────────────────────────┐
-│  Rule 1: Purge archives                                       │
-│  Rule name:           purge-archive-after-2-days              │
-│  Status:              ◉ Enabled                              │
-│  Filter:              ◉ Limit by prefix                      │
-│  Prefix:              archive/                                │
-│  Actions:             ☑ Expire current versions               │
-│  Days after creation: 2                                       │
-│                                                               │
-│                [ Create rule ]                                │
-│                                                               │
-│  Rule 2: Purge Athena results                                 │
-│  Rule name:           purge-athena-results-7-days             │
-│  Prefix:              athena-results/                         │
-│  Days after creation: 7                                       │
-│                                                               │
-│  Rule 3: Purge rejected records                               │
-│  Rule name:           purge-rejected-30-days                  │
-│  Prefix:              rejected/                               │
-│  Days after creation: 30                                      │
-└──────────────────────────────────────────────────────────────┘
+(Create 3 separate rules matching the s3_lifecycle_rules.json file)
+1. Purge archives after 2 days (Prefix: archive/)
+2. Purge Athena results after 7 days (Prefix: athena-results/)
+3. Purge rejected records after 30 days (Prefix: rejected/)
 ```
 
 ---
 
-### Console Step 5: Set Up Budget Alert
+### Console Step 6: Set Up Budget Alert
 
 ```
 AWS Console → AWS Budgets → Create budget
 
-┌──────────────────────────────────────────────────────────────┐
-│  Budget setup:         ◉ Customized                          │
-│  Budget type:          ◉ Cost budget                         │
-│                                                               │
-│  Budget name:          data-pipeline-monthly                  │
-│  Period:               Monthly                                │
-│  Budget amount:        $5.00                                  │
-│                                                               │
-│  Alerts:                                                      │
-│  Alert 1: 50% of budget ($2.50) → email notification         │
-│  Alert 2: 80% of budget ($4.00) → email notification         │
-│  Alert 3: 100% of budget ($5.00) → email notification        │
-│                                                               │
-│  Email recipients:     your-email@example.com                 │
-│                                                               │
-│                [ Create budget ]                              │
-└──────────────────────────────────────────────────────────────┘
+(Set budget to $5.00 with 50%, 80%, 100% email alerts)
 ```
 
 ---
 
-### Console Step 6: Verify Setup Checklist
+### Console Step 7: Verify Setup Checklist
 
 Before moving to Phase 2, confirm everything exists:
 
@@ -495,18 +394,19 @@ Before moving to Phase 2, confirm everything exists:
 □ S3 lifecycle: 3 rules (archive/2d, athena-results/7d, rejected/30d)
 □ KMS key created with alias "data-pipeline-key"
 □ KMS key ARN noted down
-□ IAM role: EMR_DefaultRole (with AmazonEMRServicePolicy_v2)
-□ IAM role: EMR_EC2_DefaultRole (with S3, EMR, KMS inline policy)
-□ EMR_EC2_DefaultRole added as KMS key user
-□ Budget alert set at $5 with 3 thresholds
+□ IAM role: EMR_Serverless_ExecutionRole created
+□ S3+KMS inline policy attached to role
+□ Role added as KMS key user
+□ EMR Serverless application created (App ID noted)
+□ Budget alert set at $5
 ```
 
 > [!IMPORTANT]
 > **Save these values** — you'll need them in later phases:
 > - S3 bucket name: `data-pipeline-dev-<ACCOUNT-ID>`
 > - KMS Key ARN: `arn:aws:kms:eu-west-2:<ACCOUNT-ID>:key/<KEY-ID>`
-> - EMR Service Role: `EMR_DefaultRole`
-> - EMR EC2 Role: `EMR_EC2_DefaultRole`
+> - Execution Role ARN: `arn:aws:iam::<ACCOUNT-ID>:role/EMR_Serverless_ExecutionRole`
+> - EMR Serverless App ID: `<YOUR-APP-ID>`
 
 ---
 
@@ -537,16 +437,17 @@ aws s3api put-bucket-encryption --bucket data-pipeline-dev-<ACCOUNT-ID> \
 aws s3api put-lifecycle-configuration --bucket data-pipeline-dev-<ACCOUNT-ID> \
   --lifecycle-configuration file://infrastructure/s3_lifecycle_rules.json
 
-# 6. Create IAM roles
-aws iam create-role --role-name EMR_DefaultRole \
-  --assume-role-policy-document file://infrastructure/iam_policies/emr_service_role.json
-aws iam create-role --role-name EMR_EC2_DefaultRole \
-  --assume-role-policy-document file://infrastructure/iam_policies/emr_ec2_role.json
+# 6. Create IAM role
+aws iam create-role --role-name EMR_Serverless_ExecutionRole \
+  --assume-role-policy-document file://infrastructure/iam_policies/emr_serverless_execution_role.json
+# (You still need to put the inline policy using put-role-policy)
 
-# 7. Create budget
+# 7. Create EMR Serverless App
+aws emr-serverless create-application \
+  --cli-input-json file://infrastructure/emr_serverless_app_config.json \
+  --region eu-west-2
+
+# 8. Create budget
 aws budgets create-budget --account-id <ACCOUNT-ID> \
   --budget file://infrastructure/budget_alert.json
 ```
-
-> [!TIP]
-> **Recommended approach:** Use the **Console** for Phase 1 (learning), then Phase 8 (Terraform) will codify everything for reproducibility. The JSON config files we create in this phase become the Terraform module inputs.

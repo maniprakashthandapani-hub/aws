@@ -1,0 +1,31 @@
+{
+  "_comment": "EMR Serverless Application Configuration",
+  "_purpose": "Defines the serverless Spark application (version, network, auto-stop behavior)",
+  "_usage": "aws emr-serverless create-application --cli-input-json file://this-file.json",
+  "_replace": "Update security group and subnet IDs if running inside a VPC.",
+
+  "name": "data-pipeline-app",
+  "releaseLabel": "emr-7.1.0",
+  "type": "SPARK",
+  "initialCapacity": {},
+  "maximumCapacity": {
+    "cpu": "16 vCPU",
+    "memory": "64 GB"
+  },
+  "autoStartConfiguration": {
+    "enabled": true
+  },
+  "autoStopConfiguration": {
+    "enabled": true,
+    "idleTimeoutMinutes": 15
+  },
+  "networkConfiguration": {
+    "subnetIds": [],
+    "securityGroupIds": []
+  },
+  "tags": {
+    "Project": "data-pipeline",
+    "Environment": "dev",
+    "CostCenter": "data-engineering"
+  }
+}

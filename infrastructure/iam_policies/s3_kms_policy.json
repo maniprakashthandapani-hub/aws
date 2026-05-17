@@ -1,7 +1,7 @@
 {
-  "_comment": "S3 + KMS Access Policy for EMR EC2 Role",
-  "_purpose": "Grants least-privilege S3 read/write and KMS encrypt/decrypt to the EMR EC2 instances.",
-  "_attach_to": "EMR_EC2_DefaultRole (as inline or managed policy)",
+  "_comment": "S3 + KMS Access Policy for EMR Serverless Role",
+  "_purpose": "Grants least-privilege S3 read/write and KMS encrypt/decrypt to the EMR Serverless execution role.",
+  "_attach_to": "EMR_Serverless_ExecutionRole (as inline or managed policy)",
   "_replace": "<BUCKET_NAME> with your actual bucket name, <KMS_KEY_ARN> with your KMS key ARN",
 
   "Version": "2012-10-17",
