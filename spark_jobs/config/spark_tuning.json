@@ -10,6 +10,7 @@
     "--conf", "spark.executor.memory=14g",
     "--conf", "spark.driver.cores=4",
     "--conf", "spark.driver.memory=14g",
-    "--conf", "spark.hadoop.fs.s3a.server-side-encryption-algorithm=SSE-KMS"
+    "--conf", "spark.hadoop.fs.s3a.server-side-encryption-algorithm=SSE-KMS",
+    "--conf", "spark.hadoop.fs.s3a.server-side-encryption.key=arn:aws:kms:eu-west-2:038849867257:key/95c4b27f-2243-4e8d-a934-22c201b9e84d"
   ]
 }

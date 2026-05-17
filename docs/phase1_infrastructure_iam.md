@@ -403,10 +403,10 @@ Before moving to Phase 2, confirm everything exists:
 
 > [!IMPORTANT]
 > **Save these values** — you'll need them in later phases:
-> - S3 bucket name: `data-pipeline-dev-<ACCOUNT-ID>`
-> - KMS Key ARN: `arn:aws:kms:eu-west-2:<ACCOUNT-ID>:key/<KEY-ID>`
-> - Execution Role ARN: `arn:aws:iam::<ACCOUNT-ID>:role/EMR_Serverless_ExecutionRole`
-> - EMR Serverless App ID: `<YOUR-APP-ID>`
+> - S3 bucket name: `data-pipeline-dev-tmanipra`
+> - KMS Key ARN: `arn:aws:kms:eu-west-2:038849867257:key/95c4b27f-2243-4e8d-a934-22c201b9e84d`
+> - Execution Role ARN: `arn:aws:iam::038849867257:role/EMR_Serverless_ExecutionRole`
+> - EMR Serverless App ID: `00g5ofepb7fr2k0t`
 
 ---
 
