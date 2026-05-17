@@ -26,7 +26,8 @@
         "arn:aws:s3:::data-pipeline-dev-tmanipra/processed/*",
         "arn:aws:s3:::data-pipeline-dev-tmanipra/archive/*",
         "arn:aws:s3:::data-pipeline-dev-tmanipra/rejected/*",
-        "arn:aws:s3:::data-pipeline-dev-tmanipra/logs/*"
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/logs/*",
+        "arn:aws:s3:::data-pipeline-dev-tmanipra/config/keys/*"
       ]
     },
     {
