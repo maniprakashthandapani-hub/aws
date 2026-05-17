@@ -5,8 +5,8 @@
 - [x] **Phase 1** — AWS Infrastructure & IAM (Foundation)
 - [x] **Phase 2** — PySpark Core ETL
 - [x] **Phase 3** — Data Quality Framework
-- [/] **Phase 4** — Security & Encryption
-- [ ] **Phase 5** — Airflow Orchestration
+- [x] **Phase 4** — Security & Encryption
+- [/] **Phase 5** — Airflow Orchestration
 - [ ] **Phase 6** — Operations, Monitoring & Maintenance
 - [ ] **Phase 7** — Data Lake & Athena Query Layer
 - [ ] **Phase 8** — Terraform IaC
@@ -41,3 +41,8 @@
 - [x] Update `spark_jobs/etl_main.py` for DQ routing
 - [x] `docs/phase3_data_quality.md`
 - [x] Git commit & push Phase 3
+## Phase 4 — Security & Encryption ✅
+- [x] `spark_jobs/encryption_utils.py`
+- [x] Update `spark_jobs/etl_main.py` to use KMS Envelope Encryption
+- [x] `docs/phase4_security_encryption.md`
+- [x] Git commit & push Phase 4

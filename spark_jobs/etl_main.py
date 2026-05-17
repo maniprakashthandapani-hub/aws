@@ -1,9 +1,12 @@
 import sys
 import argparse
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_date, coalesce, current_timestamp
 from schema_validator import SchemaValidator
 from data_quality import DataQualityEngine
+from encryption_utils import KMSEnvelopeEncryption
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_date, coalesce, current_timestamp
+import json
+import boto3
 
 def create_spark_session(app_name="DataPipelineETL"):
     """Initializes and returns a SparkSession."""
@@ -25,14 +28,23 @@ def standardise_dates(df, date_col):
         )
     )
 
-def encrypt_spii(df, columns_to_encrypt):
+def save_ciphertext_key_to_s3(ciphertext_blob, s3_path, dt):
     """
-    Placeholder for Phase 4 (Security & Encryption).
-    Currently just passes the DataFrame through. 
-    In Phase 4, we will integrate AWS KMS to AES-encrypt these columns.
+    Saves the KMS encrypted data key to S3 so consumers can decrypt the data later.
     """
-    print(f"Skipping encryption for {columns_to_encrypt} (to be implemented in Phase 4)")
-    return df
+    # Quick string manipulation to get bucket and key from s3://bucket/path
+    if s3_path.startswith("s3://"):
+        s3_path = s3_path[5:]
+    bucket = s3_path.split("/")[0]
+    prefix = "/".join(s3_path.split("/")[1:])
+    
+    file_key = f"{prefix}/dt={dt}/data_key.json"
+    
+    s3_client = boto3.client('s3')
+    payload = json.dumps({"execution_date": dt, "encrypted_data_key_base64": ciphertext_blob})
+    
+    s3_client.put_object(Bucket=bucket, Key=file_key, Body=payload)
+
 
 def main():
     parser = argparse.ArgumentParser(description="PySpark ETL Job")
@@ -41,6 +53,8 @@ def main():
     parser.add_argument("--schema_path", required=True, help="S3 or local path to schema.json")
     parser.add_argument("--dq_rules_path", required=True, help="S3 or local path to dq_rules.json")
     parser.add_argument("--rejected_path", required=True, help="S3 path to write rejected rows")
+    parser.add_argument("--kms_key_arn", required=True, help="ARN of the AWS KMS Key for column encryption")
+    parser.add_argument("--keys_output_path", required=True, help="S3 path to save the encrypted data keys")
     parser.add_argument("--execution_date", required=True, help="Date partition (YYYY-MM-DD)")
     args = parser.parse_args()
 
@@ -67,10 +81,24 @@ def main():
     # 4. Standardise Dates
     df = standardise_dates(df, "transaction_date")
 
-    # 5. SPII Encryption (Phase 4 Hook)
-    # Identify columns from contract that require encryption
+    # 5. SPII Encryption (Phase 4)
+    logger.info("Applying Column-Level Encryption")
     spii_cols = [c['name'] for c in validator.contract['columns'] if c.get('encrypt', False)]
-    df = encrypt_spii(df, spii_cols)
+    
+    if spii_cols:
+        kms_encryptor = KMSEnvelopeEncryption(args.kms_key_arn)
+        kms_encryptor.generate_data_key()
+        
+        # Encrypt the DataFrame
+        df = kms_encryptor.encrypt_spii_columns(df, spii_cols)
+        
+        # Save the ciphertext key to S3 for consumers
+        logger.info(f"Saving encrypted data key to {args.keys_output_path}")
+        save_ciphertext_key_to_s3(
+            kms_encryptor.get_ciphertext_blob(),
+            args.keys_output_path,
+            args.execution_date
+        )
 
     # 6. Metadata tracking
     df = df.withColumn("etl_processed_at", current_timestamp())
