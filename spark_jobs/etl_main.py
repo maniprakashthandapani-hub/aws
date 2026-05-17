@@ -77,8 +77,7 @@ def main():
         args.input_path,
         header=True,
         schema=spark_schema,
-        mode="PERMISSIVE", # Let schema_validator handle nulls/bad records
-        encoding="UTF-16"  # Handle Windows Excel exports properly
+        mode="PERMISSIVE"  # Let schema_validator handle nulls/bad records
     )
 
     # 3. Validate & Standardise (Null strategies)
