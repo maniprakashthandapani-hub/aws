@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.models import Variable
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
-from airflow.providers.amazon.aws.operators.emr import EmrServerlessStartJobRunOperator
+from airflow.providers.amazon.aws.operators.emr import EmrServerlessStartJobOperator
 from airflow.operators.python import PythonOperator
 
 # -------------------------------------------------------------------
@@ -92,7 +92,7 @@ with DAG(
 
     # Task 2: Submit the PySpark job to EMR Serverless
     # The application automatically wakes up because we configured Auto-Start in Phase 1!
-    submit_spark_job = EmrServerlessStartJobRunOperator(
+    submit_spark_job = EmrServerlessStartJobOperator(
         task_id='run_pyspark_etl',
         application_id=EMR_APP_ID,
         execution_role_arn=JOB_ROLE_ARN,
