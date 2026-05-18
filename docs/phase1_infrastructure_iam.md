@@ -81,13 +81,11 @@ Your PySpark Code (running on EMR Serverless)
 
 | Permission | Resource | Purpose |
 |-----------|----------|---------|
-| `s3:GetObject` | `landing/*`, `config/*`, `scripts/*` | Read input CSV, configs, PySpark scripts |
-| `s3:PutObject` | `processed/*`, `archive/*`, `rejected/*`, `logs/*` | Write output, archive input, store rejects |
-| `s3:DeleteObject` | `landing/*` | Remove source after archival (move = copy + delete) |
-| `s3:ListBucket` | Bucket root | List files for existence checks |
-| `kms:Encrypt` | Specific key ARN | Encrypt SPII columns + S3 SSE-KMS |
-| `kms:Decrypt` | Specific key ARN | Decrypt if re-reading processed data |
-| `kms:GenerateDataKey` | Specific key ARN | S3 SSE-KMS needs this for envelope encryption |
+| `s3:GetObject`, `s3:GetObjectVersion` | `landing/*`, `config/*`, `scripts/*` | Read raw CSV files, validation schemas, and Spark jobs |
+| `s3:PutObject`, `s3:PutObjectAcl`, `s3:DeleteObject` | `processed/*`, `archive/*`, `rejected/*`, `logs/*`, `config/keys/*` | Write Spark outputs, archive raw data, store quarantined logs, write CloudWatch/job logs, and save AES ciphertext keys. **Note:** `s3:DeleteObject` is critical here to support PySpark's `.mode("overwrite")` re-runs. |
+| `s3:DeleteObject` | `landing/*` | Remove raw source file from landing after archiving it (idempotency step) |
+| `s3:ListBucket`, `s3:GetBucketLocation` | Bucket root (`data-pipeline-dev-*`) | List files for sensor check and verify bucket location region |
+| `kms:Encrypt`, `kms:Decrypt`, `kms:GenerateDataKey*`, `kms:DescribeKey` | Specific key ARN | Generate AES-256 data keys, encrypt/decrypt SPII columns, read KMS metadata, and enforce S3 SSE-KMS at-rest |
 
 ---
 
