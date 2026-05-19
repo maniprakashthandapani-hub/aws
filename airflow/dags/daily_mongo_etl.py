@@ -28,7 +28,7 @@ KMS_KEY_ARN = Variable.get("KMS_KEY_ARN", default_var=local_config.get("kms_key_
 # EMR role must be added to MongoDB Database Users under AWS IAM authentication
 MONGO_URI = Variable.get(
     "MONGO_URI", 
-    default_var="mongodb+srv://cluster0.mongodb.net/?authSource=%24external&authMechanism=MONGODB-AWS"
+    default_var="mongodb+srv://mongo.3emle8e.mongodb.net/data_lake_db?authSource=%24external&authMechanism=MONGODB-AWS"
 )
 
 # -------------------------------------------------------------------
