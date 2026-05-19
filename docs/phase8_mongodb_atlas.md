@@ -114,6 +114,10 @@ We deploy `spark_jobs/mongo_connection_test.py` first. This lightweight script r
 3. Prints the output to CloudWatch / S3 Logs.
 
 ### How to trigger via Airflow or CLI:
+
+> [!NOTE]
+> Since default EMR Serverless applications are network-isolated and cannot access the public internet to download packages from Maven Central, utilizing `--packages` at runtime will cause a `ConnectException: Connection timed out`. Instead, we upload the connector and driver dependency JARs directly to S3 and pass them via the `--jars` parameter.
+
 Submit a Spark job run using these parameters:
 ```bash
 aws emr-serverless start-job-run \
@@ -122,7 +126,7 @@ aws emr-serverless start-job-run \
   --job-driver '{
     "sparkSubmit": {
       "entryPoint": "s3://<BUCKET-NAME>/scripts/mongo_connection_test.py",
-      "sparkSubmitParameters": "--packages org.mongodb.spark:mongo-spark-connector_2.12:10.3.0"
+      "sparkSubmitParameters": "--jars s3://<BUCKET-NAME>/jars/mongo-spark-connector_2.12-10.3.0.jar,s3://<BUCKET-NAME>/jars/mongodb-driver-sync-4.8.2.jar,s3://<BUCKET-NAME>/jars/mongodb-driver-core-4.8.2.jar,s3://<BUCKET-NAME>/jars/bson-4.8.2.jar,s3://<BUCKET-NAME>/jars/mongodb-crypt-1.5.2.jar"
     }
   }'
 ```
