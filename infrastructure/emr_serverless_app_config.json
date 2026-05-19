@@ -15,8 +15,13 @@
     "idleTimeoutMinutes": 15
   },
   "networkConfiguration": {
-    "subnetIds": [],
-    "securityGroupIds": []
+    "subnetIds": [
+      "subnet-0df4e6481baaeae84",
+      "subnet-0752ba9214138a77e"
+    ],
+    "securityGroupIds": [
+      "sg-0b09707e07b0bb688"
+    ]
   },
   "tags": {
     "Project": "data-pipeline",
