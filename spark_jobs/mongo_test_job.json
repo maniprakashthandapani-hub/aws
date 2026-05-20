@@ -2,7 +2,8 @@
   "sparkSubmit": {
     "entryPoint": "s3://data-pipeline-dev-tmanipra/scripts/mongo_connection_test.py",
     "entryPointArguments": [
-      "--mongo_uri", "mongodb+srv://mongo.3emle8e.mongodb.net/data_lake_db?authSource=%24external&authMechanism=MONGODB-AWS"
+      "--mongo_uri", "mongodb+srv://mongo.3emle8e.mongodb.net/data_lake_db?authSource=%24external&authMechanism=MONGODB-AWS",
+      "--mongo_role_arn", "arn:aws:iam::038849867257:role/MongoDB_Atlas_AccessRole"
     ],
     "sparkSubmitParameters": "--jars s3://data-pipeline-dev-tmanipra/scripts/mongo-spark-connector_2.12-10.3.0.jar,s3://data-pipeline-dev-tmanipra/scripts/mongodb-driver-sync-4.8.2.jar,s3://data-pipeline-dev-tmanipra/scripts/mongodb-driver-core-4.8.2.jar,s3://data-pipeline-dev-tmanipra/scripts/bson-4.8.2.jar,s3://data-pipeline-dev-tmanipra/scripts/mongodb-crypt-1.5.2.jar --conf spark.executor.cores=4 --conf spark.executor.memory=12g --conf spark.driver.cores=4 --conf spark.driver.memory=12g"
   }

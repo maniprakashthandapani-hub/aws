@@ -57,8 +57,7 @@ source airflow_env/bin/activate
 
 # 4. Set Airflow Home directory and install Airflow
 export AIRFLOW_HOME=~/airflow
-pip install "apache-airflow==2.9.1" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.9.txt"
-pip install apache-airflow-providers-amazon
+pip install "apache-airflow==2.9.1" apache-airflow-providers-amazon --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.9.txt"
 
 # 5. Initialize the Airflow Database
 airflow db migrate

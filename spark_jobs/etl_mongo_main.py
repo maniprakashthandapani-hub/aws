@@ -7,6 +7,33 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date, coalesce, current_timestamp
 import json
 import boto3
+import urllib.parse
+
+def get_assumed_mongo_uri(base_uri, role_arn):
+    parsed = urllib.parse.urlparse(base_uri)
+    base_cluster_url = parsed.netloc
+    database_name = parsed.path.strip("/") or "data_lake_db"
+    
+    sts_client = boto3.client('sts')
+    assumed_role_object = sts_client.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName="EMRSessionMongoAccess"
+    )
+    credentials = assumed_role_object['Credentials']
+    
+    access_key = credentials['AccessKeyId']
+    secret_key = credentials['SecretAccessKey']
+    session_token = credentials['SessionToken']
+    
+    encoded_secret = urllib.parse.quote_plus(secret_key)
+    encoded_token = urllib.parse.quote_plus(session_token)
+    
+    mongo_uri = (
+        f"mongodb+srv://{access_key}:{encoded_secret}@{base_cluster_url}/{database_name}"
+        f"?authSource=%24external&authMechanism=MONGODB-AWS"
+        f"&authMechanismProperties=AWS_SESSION_TOKEN:{encoded_token}"
+    )
+    return mongo_uri
 
 def create_spark_session(app_name="DataPipelineMongoETL"):
     """Initializes and returns a SparkSession configured for MongoDB."""
@@ -53,6 +80,7 @@ def save_ciphertext_key_to_s3(ciphertext_blob, s3_path, dt, kms_key_arn):
 def main():
     parser = argparse.ArgumentParser(description="PySpark MongoDB to S3 ETL Job")
     parser.add_argument("--mongo_uri", required=True, help="MongoDB Atlas connection URI with IAM auth")
+    parser.add_argument("--mongo_role_arn", required=False, default=None, help="Optional IAM role ARN to assume for MongoDB access")
     parser.add_argument("--output_path", required=True, help="S3 path to output Parquet")
     parser.add_argument("--schema_path", required=True, help="S3 or local path to schema.json")
     parser.add_argument("--dq_rules_path", required=True, help="S3 or local path to dq_rules.json")
@@ -61,6 +89,14 @@ def main():
     parser.add_argument("--keys_output_path", required=True, help="S3 path to save the encrypted data keys")
     parser.add_argument("--execution_date", required=True, help="Date partition (YYYY-MM-DD)")
     args = parser.parse_args()
+
+    if args.mongo_role_arn:
+        try:
+            args.mongo_uri = get_assumed_mongo_uri(args.mongo_uri, args.mongo_role_arn)
+        except Exception as e:
+            print(f"ERROR: Failed to assume IAM role {args.mongo_role_arn}!", file=sys.stderr)
+            print(str(e), file=sys.stderr)
+            sys.exit(1)
 
     spark = create_spark_session()
     logger = spark._jvm.org.apache.log4j.LogManager.getLogger("com.datapipeline.etl")

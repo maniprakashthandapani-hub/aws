@@ -7,6 +7,7 @@
     "s3_bucket": "data-pipeline-dev-tmanipra",
     "kms_key_arn": "arn:aws:kms:eu-west-2:038849867257:key/95c4b27f-2243-4e8d-a934-22c201b9e84d",
     "emr_serverless_execution_role_arn": "arn:aws:iam::038849867257:role/EMR_Serverless_ExecutionRole",
-    "emr_serverless_app_id": "00g5ofepb7fr2k0t"
+    "emr_serverless_app_id": "00g5ofepb7fr2k0t",
+    "mongo_role_arn": "arn:aws:iam::038849867257:role/MongoDB_Atlas_AccessRole"
   }
 }

@@ -30,6 +30,10 @@ MONGO_URI = Variable.get(
     "MONGO_URI", 
     default_var="mongodb+srv://mongo.3emle8e.mongodb.net/data_lake_db?authSource=%24external&authMechanism=MONGODB-AWS"
 )
+MONGO_ROLE_ARN = Variable.get(
+    "MONGO_ROLE_ARN",
+    default_var=local_config.get("mongo_role_arn", "arn:aws:iam::038849867257:role/MongoDB_Atlas_AccessRole")
+)
 
 # -------------------------------------------------------------------
 # DAG Definition
@@ -64,6 +68,7 @@ with DAG(
                 "entryPoint": f"s3://{S3_BUCKET}/scripts/etl_mongo_main.py",
                 "entryPointArguments": [
                     "--mongo_uri", MONGO_URI,
+                    "--mongo_role_arn", MONGO_ROLE_ARN,
                     "--output_path", f"s3://{S3_BUCKET}/processed/",
                     "--schema_path", f"s3://{S3_BUCKET}/config/schema_definition.json",
                     "--dq_rules_path", f"s3://{S3_BUCKET}/config/dq_rules.json",
