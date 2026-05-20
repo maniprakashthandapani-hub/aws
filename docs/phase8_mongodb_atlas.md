@@ -55,20 +55,50 @@ flowchart TD
 
 ---
 
-## 🔒 Step 2: Configure Passwordless AWS IAM Database Access
+## 🔒 Step 2: Configure Passwordless AWS IAM Database Access (Two-Role Delegation)
 
-MongoDB Atlas will authenticate EMR using AWS STS. Let's register your EMR Execution Role as a database user.
+In an enterprise banking environment, we separate concerns using a **two-role delegation model**. Instead of granting your main EMR Execution Role database access directly, we delegate access to a dedicated MongoDB role that EMR assumes dynamically via AWS Security Token Service (STS).
 
-1. In MongoDB Atlas, go to **Security** ➡️ **Database Access** ➡️ **Add New Database User**.
+### 2a. Create the Dedicated MongoDB Role (`MongoDB_Atlas_AccessRole`)
+1. Create a new IAM Role in the AWS Console named `MongoDB_Atlas_AccessRole`.
+2. Configure the **Trust Relationship (Trust Policy)** to allow the EMR Execution Role to assume it:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "AWS": "arn:aws:iam::038849867257:role/EMR_Serverless_ExecutionRole"
+         },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
+*(No AWS permissions need to be attached to this role, as its permissions are managed at the database level inside MongoDB Atlas.)*
+
+### 2b. Map the MongoDB Access Role in MongoDB Atlas
+1. In the MongoDB Atlas Console, navigate to **Security** ➡️ **Database Access** ➡️ **Add New Database User**.
 2. Select **AWS IAM** under *Authentication Method*.
 3. Select **IAM Role** under *IAM Type*.
-4. Paste your exact EMR Execution Role ARN:
+4. Paste the ARN of the new MongoDB Access Role:
    ```text
-   arn:aws:iam::038849867257:role/EMR_Serverless_ExecutionRole
+   arn:aws:iam::038849867257:role/MongoDB_Atlas_AccessRole
    ```
-5. Set database permissions:
-   - **Roles:** `Read and write to any database` (or custom access to `data_lake_db`).
+5. Set Database User Privileges (e.g. `Read and write to any database` or custom access to `data_lake_db`).
 6. Click **Add User**.
+
+### 2c. Authorize EMR to Assume the Role
+Add the `sts:AssumeRole` action to your EMR Execution Role policy (`s3_kms_policy.json`):
+```json
+{
+  "Sid": "AllowAssumeMongoRole",
+  "Effect": "Allow",
+  "Action": "sts:AssumeRole",
+  "Resource": "arn:aws:iam::038849867257:role/MongoDB_Atlas_AccessRole"
+}
+```
 
 ---
 
@@ -126,7 +156,11 @@ aws emr-serverless start-job-run \
   --job-driver '{
     "sparkSubmit": {
       "entryPoint": "s3://<BUCKET-NAME>/scripts/mongo_connection_test.py",
-      "sparkSubmitParameters": "--jars s3://<BUCKET-NAME>/jars/mongo-spark-connector_2.12-10.3.0.jar,s3://<BUCKET-NAME>/jars/mongodb-driver-sync-4.8.2.jar,s3://<BUCKET-NAME>/jars/mongodb-driver-core-4.8.2.jar,s3://<BUCKET-NAME>/jars/bson-4.8.2.jar,s3://<BUCKET-NAME>/jars/mongodb-crypt-1.5.2.jar"
+      "entryPointArguments": [
+        "--mongo_uri", "mongodb+srv://mongo.3emle8e.mongodb.net/data_lake_db?authSource=%24external&authMechanism=MONGODB-AWS",
+        "--mongo_role_arn", "arn:aws:iam::<ACCOUNT-ID>:role/MongoDB_Atlas_AccessRole"
+      ],
+      "sparkSubmitParameters": "--jars s3://<BUCKET-NAME>/scripts/mongo-spark-connector_2.12-10.3.0.jar,s3://<BUCKET-NAME>/scripts/mongodb-driver-sync-4.8.2.jar,s3://<BUCKET-NAME>/scripts/mongodb-driver-core-4.8.2.jar,s3://<BUCKET-NAME>/jars/bson-4.8.2.jar,s3://<BUCKET-NAME>/scripts/mongodb-crypt-1.5.2.jar --conf spark.executor.cores=4 --conf spark.executor.memory=12g --conf spark.driver.cores=4 --conf spark.driver.memory=12g"
     }
   }'
 ```
